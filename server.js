@@ -1,63 +1,43 @@
+// server.js
 import express from "express";
-import fetch from "node-fetch";
 import cors from "cors";
+import fetch from "node-fetch"; // npm install node-fetch@2
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 10000;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_URL = process.env.OLLAMA_URL || "https://api.groq.com/openai/v1";
+// Port
+const PORT = process.env.PORT || 5000;
 
-// ✅ Health check
+// Health check
 app.get("/", (req, res) => {
-  res.json({
-    status: "ok",
-    provider: "groq",
-    connected: !!GROQ_API_KEY,
-    url: GROQ_URL,
-  });
+  res.json({ status: "ok", message: "Kilocode AI Proxy is running" });
 });
 
-// ✅ Proxy endpoint to handle chat requests
-app.post("/api/chat", async (req, res) => {
+// Proxy endpoint to handle AI requests
+app.post("/api/ai", async (req, res) => {
   try {
-    const messages = req.body.messages;
+    const { messages } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
-      return res.status(400).json({ error: "Invalid request format" });
+      return res.status(400).json({ error: "No messages array provided" });
     }
 
-    const response = await fetch(`${GROQ_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant", // free fast model
-        messages: messages,
-        temperature: 0.7,
-      }),
-    });
+    // Simulate Kilocode AI response (replace this with actual API logic if available)
+    const userMessage = messages.map(m => m.content).join("\n");
+    const output = `# AI Response for command:\n${userMessage}\n\n(This is a simulated response for testing)`;
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("❌ Groq API Error:", data);
-      return res.status(response.status).json(data);
-    }
-
-    const output = data?.choices?.[0]?.message?.content || "(no output)";
-    console.log("✅ AI Response:", output.slice(0, 80) + "...");
-    res.json({ output });
+    return res.json({ output });
   } catch (err) {
-    console.error("🔥 Server Error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Server Error:", err);
+    return res.status(500).json({ error: err.message });
   }
 });
 
+// Start server
 app.listen(PORT, () => {
-  console.log(`✅ Proxy running on port ${PORT}`);
+  console.log(`✅ Kilocode AI Proxy running on port ${PORT}`);
 });
