@@ -1,11 +1,17 @@
 import express from "express";
-import cors from "cors";
 import fetch from "node-fetch";
+import cors from "cors";
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
+// ROOT TEST
+app.get("/", (req, res) => {
+  res.send("Speckit AI Proxy Running...");
+});
+
+// AI ENDPOINT (FINAL FIXED VERSION)
 app.post("/api/ai", async (req, res) => {
   try {
     const prompt = req.body.prompt;
@@ -13,28 +19,35 @@ app.post("/api/ai", async (req, res) => {
       return res.status(400).json({ error: "No prompt provided" });
     }
 
-    const response = await fetch("https://api.kilocode.ai/v1/completions", {
+    console.log("Received prompt:", prompt);
+
+    // ⭐ FINAL FIX: Correct Kilocode endpoint
+    const response = await fetch("https://api.kilocode.ai/v1/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "kilocode-1",
+        model: "kilocode-free",   // ⭐ this is the free model
         prompt: prompt,
-        temperature: 0.5
-      })
+        max_tokens: 500
+      }),
     });
 
+    // Parse Kilocode response safely
     const data = await response.json();
+    console.log("Kilocode response:", data);
 
-    return res.json({
-      output: data?.choices?.[0]?.text || "No output returned"
-    });
+    // Extract output text
+    const output = data?.text || "No AI response received.";
+
+    res.json({ output });
 
   } catch (err) {
-    console.error("Proxy error:", err);
-    res.status(500).json({ error: "Proxy failed: " + err.message });
+    console.error("Proxy Error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log("AI Proxy running on port", process.env.PORT || 5000);
+// START SERVER
+app.listen(5000, () => {
+  console.log("Proxy server running on http://localhost:5000");
 });
